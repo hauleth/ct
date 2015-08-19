@@ -4,6 +4,14 @@ use std::mem::size_of;
 #[derive(Clone, Copy, Debug)]
 pub struct Ct<T>(T);
 
+impl<T> Ct<T> where T: Neg<Output=T> + BitAnd<Output=T> + BitXor<Output=T> + Copy {
+    pub fn select(self, a: T, b: T) -> Self {
+        let mask = -self;
+        let ret = mask & (a ^ b);
+        ret ^ a
+    }
+}
+
 macro_rules! implement {
     (Eq for $($t:ty),*) => {
         $(
@@ -31,6 +39,11 @@ macro_rules! implement {
             type Output = Ct<$t::Output>;
 
             fn $fun(self, other: Self) -> Self::Output { Ct($t::$fun(self.0, other.0)) }
+        }
+        impl<$t> $op<$t> for Ct<$t> where $t: $op {
+            type Output = Ct<$t::Output>;
+
+            fn $fun(self, other: $t) -> Self::Output { Ct($t::$fun(self.0, other)) }
         }
     };
     (unary $op:ident for Ct<$t:ident> with $fun:ident) => {
